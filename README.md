@@ -1,47 +1,50 @@
-# LibreTranslate API Server (for GitHub Pages / Static Sites)
+# Heroic Flashcards – LibreTranslate backend (GitHub Pages friendly)
 
-This repo contains a **Dockerized LibreTranslate API** behind **Caddy (automatic HTTPS)** so you can use translation from a static website (GitHub Pages, Netlify, Vercel, etc.).
+GitHub Pages is static-only, so your translation box needs a **separate** server to call.
 
-GitHub Pages is static hosting — it **cannot run LibreTranslate** itself — so you run this **server** somewhere else (a VPS, home server, etc.) and point your front-end to it.
+This repo builds a single Docker service that:
+- runs LibreTranslate locally on `127.0.0.1:5000`
+- exposes a public HTTP endpoint via a small Python reverse proxy that **adds CORS headers**
+  so your site `https://heroicflashcards.js.org` can call it.
 
-## Folder layout
+## Deploy (Render – easiest)
 
-- `server/` — Docker Compose + Caddy reverse proxy (HTTPS + CORS)
-- `.github/` — optional repo housekeeping
+1) Push this repo to GitHub (new repo recommended, e.g. `heroicflashcards-translate`).
 
-## Deploy (recommended)
+2) On Render:
+- New → **Web Service**
+- Connect your GitHub repo
+- Environment: **Docker**
+- Set these environment variables:
 
-**Requirements**
-- A server with Docker + Docker Compose
-- A domain/subdomain you control (example: `translate.yourdomain.com`) pointing to that server (DNS A/AAAA)
-
-**Steps**
-1. Clone this repo on your server
-2. Edit `server/Caddyfile` and replace `translate.yourdomain.com` with your real subdomain
-3. (Optional but recommended) Restrict CORS to your site origin (see `server/Caddyfile` comments)
-4. Start:
-   ```bash
-   cd server
-   docker compose up -d
-   ```
-
-Your API endpoint will be:
-- `https://translate.yourdomain.com/translate`
-
-## Local testing (no HTTPS)
-
-Start only LibreTranslate:
-```bash
-cd server
-docker compose up -d libretranslate
+```
+ALLOWED_ORIGIN=https://heroicflashcards.js.org
+LT_LOAD_ONLY=en,zh,ko,vi,th,fr,hi
+LT_DISABLE_WEB_UI=true
 ```
 
-Then set your app’s endpoint to:
-- `http://localhost:5000/translate`
+3) Deploy. Your public API will be at:
+`https://<your-service>.onrender.com`
 
-> Note: open your website via `http://localhost` (not `file://`) during local testing so browser requests work normally.
+Test:
+- `GET /languages`
+- `POST /translate`
+
+## Wire it into your GitHub Pages app
+
+In your flashcards JS, set:
+
+```
+const LT_BASE = "https://<your-service>.onrender.com";
+```
+
+and call:
+- `${LT_BASE}/translate`
+- `${LT_BASE}/languages`
+
+That’s it.
 
 ## Notes
 
-- Languages loaded are configured in `server/docker-compose.yml` via `LT_LOAD_ONLY`.
-- The web UI is disabled (`LT_DISABLE_WEB_UI=true`) because this is meant to be an API for your app.
+- The first boot can take a while because language models download.
+  `LT_LOAD_ONLY` keeps it smaller.
