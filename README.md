@@ -1,3 +1,4 @@
+Heroic Flash Cards is an open-source JavaScript-based flashcard + TTS learning tool
 # Heroic Flashcards – LibreTranslate backend (GitHub Pages friendly)
 
 GitHub Pages is static-only, so your translation box needs a **separate** server to call.
